@@ -1,5 +1,5 @@
 from telegram import Update, ForceReply
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, JobQueue
 from telegram.ext.callbackqueryhandler import CallbackQueryHandler
 from telegram.inline.inlinekeyboardbutton import InlineKeyboardButton
 from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
@@ -13,8 +13,6 @@ import pymongo
 client = db_connect.client
 db = db_connect.db
 coll = db['users']
-
-district = 0
 
 temp_user = {'name': '', 'district': 0, 'age': 0}
 
@@ -40,22 +38,41 @@ def check(update: Update, _: CallbackContext) -> None:
 
 def button_handler(update: Update, _: CallbackContext) -> None:
   query = update.callback_query
-  print(query, type(query))
   if query.data == '0' or query.data == '1':
+    temp_user['_id'] = query.message.chat.id
     temp_user['district'] = query.data
     reply_markup = ask_age()
-    print('done dist')
     query.answer()
     query.edit_message_text('Please select your age:', reply_markup=reply_markup)
   elif query.data == '45' or query.data == '18':
     temp_user['age'] = query.data
+    reply_markup = ask_notify()
     query.answer()
-    query.edit_message_text('Thank you')
+    query.edit_message_text('Would you like to be notified of new slots ?', reply_markup=reply_markup)
+  elif query.data == 'Yes' or query.data == 'No':
+    if query.data == 'Yes':
+      temp_user['notify'] = 1
+    else:
+      temp_user['notify'] = 0
+    query.answer()
+    query.edit_message_text('Thank you.')
     save_user_to_db()
 
 def save_user_to_db() -> None:
-  coll.insert_one(temp_user)
+  key = {'_id': temp_user['_id']}
+  data = {'$set': {'district': temp_user['district'], 'age': temp_user['age'], 'notify': temp_user['notify']}}
+  coll.update_one(key, data, upsert=True)
   client.close()
+
+def ask_notify() -> InlineKeyboardMarkup:
+  keyboard = [
+    [
+      InlineKeyboardButton("Yes", callback_data='Yes'),
+      InlineKeyboardButton("No", callback_data='No')
+    ]
+  ]
+  return InlineKeyboardMarkup(keyboard)
+
 
 
 def ask_age() -> InlineKeyboardMarkup:

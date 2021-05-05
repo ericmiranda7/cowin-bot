@@ -22,7 +22,7 @@ def get(dId, date):
   #print(data.get('centers')[1])
   return data
 
-def update_db(dId, date, age):
+def update_db(dId, date):
   data = get(dId, date)
   data = data.get('centers')
   
@@ -42,43 +42,54 @@ def update_db(dId, date, age):
         db.insert_one(hospital)
       db_center = db.find_one({'_id': curr_center['_id']})
 
-
       curr_center['sessions'].append(sessions)
       for session in curr_center['sessions']:
-        if session.get('min_age_limit') != age:
-          continue
         session_slots = session.get('available_capacity')
         session_date = session.get('date')
+        session_age = session.get('min_age_limit')
 
-        # check if center exists in db
-        exists = db.find_one({'_id': curr_center['_id']})
-        if not exists:
-          hospital = {'_id': curr_center['_id'], 'name': curr_center['name'], 'fourtyFive': [], 'eighteen': []}
-          db.insert_one(hospital)
+        if session_age == 45:
+          # cross-check session date with local db
+          db_record = db_center['fourtyFive']
 
-        # cross-check session date with local db
-        api_record = {session_date: session_slots}
-        db_record = db_center['fourtyFive']
+          exists = False
+          for ind, rec in enumerate(db_record):
+            for key_date, slots in rec.items():
+              if key_date == session_date:
+                if slots != session_slots:
+                  # update local db
+                  print('updating')
+                  db.update_one({'_id': curr_center['_id']}, {'$set': {'fourtyFive.'+str(ind)+'.'+str(session_date): session_slots}})
+                exists = True
 
-        exists = False
-        for ind, rec in enumerate(db_record):
-          for key_date, slots in rec.items():
-            if key_date == session_date:
-              if slots != session_slots:
-                # update local db
-                print('updating')
-                db.update_one({'__id': curr_center['_id']}, {'$set': {'fourtyFive.'+str(ind)+'.'+str(date): session_slots}})
-              exists = True
-        
-        if not exists:
-          # if date doesn't exist, insert it
-          db.update_one({'_id': curr_center['_id']}, {'$push': {'fourtyFive': {session_date: session_slots}}})
-        
+          if not exists:
+            # if date doesn't exist, insert it
+            db.update_one({'_id': curr_center['_id']}, {'$push': {'fourtyFive': {session_date: session_slots}}})
 
-def check_for_updates(dId, age):
+ 
+        if session_age == 18:
+          # cross-check session date with local db
+          db_record = db_center['eighteen']
+
+          exists = False
+          for ind, rec in enumerate(db_record):
+            for key_date, slots in rec.items():
+              if key_date == session_date:
+                if slots != session_slots:
+                  # update local db
+                  print('updating')
+                  db.update_one({'__id': curr_center['_id']}, {'$set': {'eighteen.'+str(ind)+'.'+str(session_date): session_slots}})
+                exists = True
+
+          if not exists:
+            # if date doesn't exist, insert it
+            db.update_one({'_id': curr_center['_id']}, {'$push': {'eighteen': {session_date: session_slots}}})       
+
+
+def check_for_updates(dId):
   date = datetime.datetime.now()
   for i in range(6):
-    update_db(dId, date.strftime('%d-%m-%Y'), age)
+    update_db(dId, date.strftime('%d-%m-%Y'))
     date += datetime.timedelta(weeks=1) 
 
-check_for_updates(151, 45)
+check_for_updates(151)

@@ -89,6 +89,4 @@ def check_for_updates(dId):
   date = datetime.datetime.now()
   for i in range(6):
     update_db(dId, date.strftime('%d-%m-%Y'))
-    date += datetime.timedelta(weeks=1) 
-
-check_for_updates(151)
+    date += datetime.timedelta(weeks=1)

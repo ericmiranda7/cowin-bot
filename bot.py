@@ -1,9 +1,9 @@
 from telegram import Update, ForceReply
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, JobQueue
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 from telegram.ext.callbackqueryhandler import CallbackQueryHandler
 from telegram.inline.inlinekeyboardbutton import InlineKeyboardButton
 from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
-#import get_sched
+import get_sched
 import os
 import dotenv
 dotenv.load_dotenv()
@@ -73,6 +73,9 @@ def ask_notify() -> InlineKeyboardMarkup:
   ]
   return InlineKeyboardMarkup(keyboard)
 
+def update_db(context):
+  get_sched.check_for_updates(temp_user['district'])
+  print('updating')
 
 
 def ask_age() -> InlineKeyboardMarkup:
@@ -86,6 +89,11 @@ def ask_age() -> InlineKeyboardMarkup:
 
 def main() -> None:
   updater = Updater(os.environ['BOT_API'])
+
+  # job queue
+  jq = updater.job_queue
+  jq.run_repeating(update_db, 10)
+
   dispatcher = updater.dispatcher
 
   dispatcher.add_handler(CommandHandler("start", start))

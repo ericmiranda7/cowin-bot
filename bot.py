@@ -32,12 +32,26 @@ def check(update: Update, _: CallbackContext) -> None:
 
 def button_handler(update: Update, _: CallbackContext) -> None:
   query = update.callback_query
-
-  if query == '0' or query == '1':
+  print(query, type(query))
+  if query.data == '0' or query.data == '1':
     district = query
+    reply_markup = ask_age()
+    print('done dist')
+    query.answer()
+    query.edit_message_text('Please select your age:', reply_markup=reply_markup)
+  elif query.data == '45' or query.data == '18':
+    age = query
+    query.answer()
+    query.edit_message_text('Thank you')
 
-  query.answer()
-  query.edit_message_text('Thank you.')
+def ask_age() -> InlineKeyboardMarkup:
+  keyboard = [
+    [
+      InlineKeyboardButton("45+", callback_data='45'),
+      InlineKeyboardButton("18+", callback_data='18')
+    ]
+  ]
+  return InlineKeyboardMarkup(keyboard)
 
 def main() -> None:
   updater = Updater(os.environ['BOT_API'])

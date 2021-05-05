@@ -51,14 +51,13 @@ def update_db(dId, date):
         if session_age == 45:
           # cross-check session date with local db
           db_record = db_center['fourtyFive']
-
           exists = False
           for ind, rec in enumerate(db_record):
             for key_date, slots in rec.items():
               if key_date == session_date:
                 if slots != session_slots:
                   # update local db
-                  print('updating')
+                  print('updating', curr_center)
                   db.update_one({'_id': curr_center['_id']}, {'$set': {'fourtyFive.'+str(ind)+'.'+str(session_date): session_slots}})
                 exists = True
 

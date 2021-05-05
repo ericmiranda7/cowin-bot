@@ -14,6 +14,7 @@ URL = 'https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDi
 db = client['cowin']
 db = db["hospitals"]
 
+
 def get(dId, date):
   params = {'district_id': dId, 'date': date}
   r = requests.get(url=URL, params=params)
@@ -44,7 +45,7 @@ def update_db(dId, date, age):
 
       curr_center['sessions'].append(sessions)
       for session in curr_center['sessions']:
-        if session.get('min_age_limit') != 45:
+        if session.get('min_age_limit') != age:
           continue
         session_slots = session.get('available_capacity')
         session_date = session.get('date')
@@ -67,7 +68,7 @@ def update_db(dId, date, age):
                 # update local db
                 print('updating')
                 db.update_one({'__id': curr_center['_id']}, {'$set': {'fourtyFive.'+str(ind)+'.'+str(date): session_slots}})
-                exists = True
+              exists = True
         
         if not exists:
           # if date doesn't exist, insert it

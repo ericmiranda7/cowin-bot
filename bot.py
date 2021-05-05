@@ -7,8 +7,16 @@ from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 import os
 import dotenv
 dotenv.load_dotenv()
+import db_connect
+import pymongo
+
+client = db_connect.client
+db = db_connect.db
+coll = db['users']
 
 district = 0
+
+temp_user = {'name': '', 'district': 0, 'age': 0}
 
 def start(update: Update, _: CallbackContext) -> None:
   update.message.reply_text('Welcome !\nPlease give me some details with /setup')
@@ -34,15 +42,21 @@ def button_handler(update: Update, _: CallbackContext) -> None:
   query = update.callback_query
   print(query, type(query))
   if query.data == '0' or query.data == '1':
-    district = query
+    temp_user['district'] = query.data
     reply_markup = ask_age()
     print('done dist')
     query.answer()
     query.edit_message_text('Please select your age:', reply_markup=reply_markup)
   elif query.data == '45' or query.data == '18':
-    age = query
+    temp_user['age'] = query.data
     query.answer()
     query.edit_message_text('Thank you')
+    save_user_to_db()
+
+def save_user_to_db() -> None:
+  coll.insert_one(temp_user)
+  client.close()
+
 
 def ask_age() -> InlineKeyboardMarkup:
   keyboard = [

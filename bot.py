@@ -114,8 +114,18 @@ def ask_notify() -> InlineKeyboardMarkup:
   ]
   return InlineKeyboardMarkup(keyboard)
 
-def update_db(context):
-  update_user = get_sched.check_for_updates(151)
+def update_db(context: CallbackContext):
+  check_update = get_sched.check_for_updates(151)
+  print(check_update)
+  if check_update:
+    users = coll_users.find({})
+    for doc in users:
+      if doc['notify']:
+        print('notify the user here')
+        context.bot.send_message(chat_id=doc['_id'], text=f'{check_update}: slot was added')
+
+
+  #update_user = get_sched.check_for_updates(151)
   print('db ran')
   
 
@@ -133,7 +143,7 @@ def main() -> None:
 
   # job queue
   jq = updater.job_queue
-  #jq.run_repeating(update_db, 30)
+  jq.run_repeating(update_db, 30)
 
   dispatcher = updater.dispatcher
 

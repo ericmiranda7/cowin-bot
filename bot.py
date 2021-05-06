@@ -38,6 +38,9 @@ def setup(update: Update, _: CallbackContext) -> None:
     if (indx+1) % 3 == 0:
       keyboard.append(copy.deepcopy(keyboard_row))
       keyboard_row.clear()
+    if indx == 36:
+      keyboard.append(copy.deepcopy(keyboard_row))
+      keyboard_row.clear()
 
   reply_markup = InlineKeyboardMarkup(keyboard)
   update.message.reply_text(text='Please choose a state:', reply_markup=reply_markup)
@@ -102,12 +105,6 @@ def check(update: Update, _: CallbackContext) -> None:
   #centers = get_sched.get_formatted()
   update.message.reply_text(text=centers)
 
-def save_user_to_db() -> None:
-  key = {'_id': temp_user['_id']}
-  data = {'$set': {'district': temp_user['district'], 'age': temp_user['age'], 'notify': temp_user['notify']}}
-  coll_users.update_one(key, data, upsert=True)
-  client.close()
-
 def ask_notify() -> InlineKeyboardMarkup:
   keyboard = [
     [
@@ -120,9 +117,7 @@ def ask_notify() -> InlineKeyboardMarkup:
 def update_db(context):
   update_user = get_sched.check_for_updates(151)
   print('db ran')
-  if update_user:
-    context.bot.send_message(chat_id=temp_user['_id'], text='something was updated')
-
+  
 
 def ask_age() -> InlineKeyboardMarkup:
   keyboard = [
@@ -132,29 +127,6 @@ def ask_age() -> InlineKeyboardMarkup:
     ]
   ]
   return InlineKeyboardMarkup(keyboard)
-
-""" def button_handler(update: Update, _: CallbackContext) -> None:
-  query = update.callback_query
-  if query.data == '0' or query.data == '1':
-    temp_user['_id'] = query.message.chat.id
-    temp_user['district'] = query.data
-    reply_markup = ask_age()
-    query.answer()
-    query.edit_message_text('Please select your age:', reply_markup=reply_markup)
-  elif query.data == '45' or query.data == '18':
-    temp_user['age'] = query.data
-    reply_markup = ask_notify()
-    query.answer()
-    query.edit_message_text('Would you like to be notified of new slots ?', reply_markup=reply_markup)
-  elif query.data == 'Yes' or query.data == 'No':
-    if query.data == 'Yes':
-      temp_user['notify'] = 1
-    else:
-      temp_user['notify'] = 0
-    query.answer()
-    query.edit_message_text('Thank you.')
-    save_user_to_db() """
-
 
 def main() -> None:
   updater = Updater(os.environ['BOT_API'])
@@ -172,9 +144,6 @@ def main() -> None:
   dispatcher.add_handler(CallbackQueryHandler(get_district, pattern='^d'))
   dispatcher.add_handler(CallbackQueryHandler(get_age, pattern='^a'))
   dispatcher.add_handler(CallbackQueryHandler(get_notify, pattern='^n'))
-
-
-
 
   updater.start_polling()
   updater.idle()

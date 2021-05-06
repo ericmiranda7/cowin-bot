@@ -11,18 +11,20 @@ load_dotenv()
 client = pymongo.MongoClient("mongodb://localhost:27017")
 
 URL = 'https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict'
+HEADER = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'}
 db = client['cowin']
 db = db["hospitals"]
 
 
 def get(dId, date):
   params = {'district_id': dId, 'date': date}
-  r = requests.get(url=URL, params=params)
+  r = requests.get(url=URL, params=params, headers=HEADER)
   data = r.json()
   #print(data.get('centers')[1])
   return data
 
-def update_db(dId, date):
+def update_db(dId, date) -> int:
+  new_data = 0
   data = get(dId, date)
   data = data.get('centers')
   
@@ -40,6 +42,8 @@ def update_db(dId, date):
       if not exists:
         hospital = {'_id': curr_center['_id'], 'name': curr_center['name'], 'fourtyFive': [], 'eighteen': []}
         db.insert_one(hospital)
+        new_data = 1
+
       db_center = db.find_one({'_id': curr_center['_id']})
 
       curr_center['sessions'].append(sessions)
@@ -57,12 +61,15 @@ def update_db(dId, date):
               if key_date == session_date:
                 if slots != session_slots:
                   # update local db
-                  print('updating', curr_center)
+                  print('updating ', slots, session_slots)
+                  new_data = 1
                   db.update_one({'_id': curr_center['_id']}, {'$set': {'fourtyFive.'+str(ind)+'.'+str(session_date): session_slots}})
                 exists = True
 
           if not exists:
             # if date doesn't exist, insert it
+            print('inserting')
+            new_data = 1
             db.update_one({'_id': curr_center['_id']}, {'$push': {'fourtyFive': {session_date: session_slots}}})
 
  
@@ -77,16 +84,25 @@ def update_db(dId, date):
                 if slots != session_slots:
                   # update local db
                   print('updating')
+                  new_data = 1
                   db.update_one({'__id': curr_center['_id']}, {'$set': {'eighteen.'+str(ind)+'.'+str(session_date): session_slots}})
                 exists = True
 
           if not exists:
             # if date doesn't exist, insert it
-            db.update_one({'_id': curr_center['_id']}, {'$push': {'eighteen': {session_date: session_slots}}})       
+            new_data = 1
+            db.update_one({'_id': curr_center['_id']}, {'$push': {'eighteen': {session_date: session_slots}}})    
+
+  return new_data
 
 
-def check_for_updates(dId):
+def check_for_updates(dId) -> int:
+  no_of_updates = 0
   date = datetime.datetime.now()
   for i in range(6):
-    update_db(dId, date.strftime('%d-%m-%Y'))
+    no_of_updates += update_db(dId, date.strftime('%d-%m-%Y'))
     date += datetime.timedelta(weeks=1)
+
+  return no_of_updates
+
+check_for_updates(151)

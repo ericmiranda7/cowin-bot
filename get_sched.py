@@ -17,7 +17,6 @@ db = db['hospitals']
 
 
 def get(dId, date) -> dict:
-  print('fetching')
   params = {'district_id': dId, 'date': date}
   r = requests.get(url=URL, params=params, headers=HEADER)
   return r.json()
@@ -32,6 +31,7 @@ def update_db(dId, date) -> int:
         '_id': center.get('center_id'),
         'name': center.get('name'),
     }
+
     db.update_one(
         {'_id': curr_center['_id']},
         {'$setOnInsert': {
@@ -57,6 +57,7 @@ def update_db(dId, date) -> int:
         {'_id': curr_center['_id'],
         db_key+'.'+str(session_date): {'$exists': True}}
       )
+
       if db_record is not None:
         db_slots = db_record[db_key][str(session_date)]
         if db_slots != session_slots:
@@ -71,7 +72,7 @@ def update_db(dId, date) -> int:
         db.update_one(
             {'_id': curr_center['_id']},
             {'$set': {db_key+'.'+str(session_date): session_slots}}
-          )
+        )
 
   return districts
 
@@ -86,5 +87,3 @@ def check_for_updates(dId) -> int:
     date += datetime.timedelta(weeks=1)
 
   return districts
-
-check_for_updates(151)
